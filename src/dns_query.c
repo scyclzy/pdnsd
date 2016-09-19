@@ -868,6 +868,10 @@ static int p_query_sm(query_stat_t *st)
 			break;
 		}
 
+#ifdef ANDROID
+        protect_socket(st->sock);
+#endif
+
 		/* transmit query by tcp*/
 		/* make the socket non-blocking */
 		{
@@ -1016,6 +1020,10 @@ static int p_query_sm(query_stat_t *st)
 			close(st->sock);
 			break;
 		}
+
+#ifdef ANDROID
+        protect_socket(st->sock);
+#endif
 
 		/* connect */
 #ifdef ENABLE_IPV6
