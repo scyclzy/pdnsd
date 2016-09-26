@@ -186,6 +186,7 @@ static const namevalue_t server_options[]= {
 	{"preset",             PRESET},
 	{"proxy_only",         PROXY_ONLY},
 	{"purge_cache",        PURGE_CACHE},
+	{"query_method",       C_QUERY_METHOD},
 	{"query_test_name",    QUERY_TEST_NAME},
 	{"randomize_servers",  RANDOMIZE_SERVERS},
 	{"reject",             REJECTLIST},

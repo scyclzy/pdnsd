@@ -991,6 +991,38 @@ int confparse(FILE* in, char *prestr, globparm_t *global, servparm_array *server
 	    SCAN_UNSIGNED_NUM(server.port,p,"port option");
 	    break;
 
+	  case C_QUERY_METHOD: {
+	    int cnst;
+	    ASSIGN_CONST(cnst,p,cnst==TCP_ONLY || cnst==UDP_ONLY || cnst==TCP_UDP || cnst==UDP_TCP,"bad qualifier in query_method= option.");
+#ifdef NO_TCP_QUERIES
+	    if (cnst==TCP_ONLY) {
+	      REPORT_ERROR("the tcp_only option is only available when pdnsd is compiled with TCP support.");
+	      PARSERROR;
+	    }
+	    else
+#endif
+#ifdef NO_UDP_QUERIES
+	      if (cnst==UDP_ONLY) {
+		REPORT_ERROR("the udp_only option is only available when pdnsd is compiled with UDP support.");
+		PARSERROR;
+	      }
+	      else
+#endif
+#if defined(NO_TCP_QUERIES) || defined(NO_UDP_QUERIES)
+		if (cnst==TCP_UDP) {
+		  REPORT_ERROR("the tcp_udp option is only available when pdnsd is compiled with both TCP and UDP support.");
+		  PARSERROR;
+		}
+		else if (cnst==UDP_TCP) {
+		  REPORT_ERROR("the udp_tcp option is only available when pdnsd is compiled with both TCP and UDP support.");
+		  PARSERROR;
+		}
+		else
+#endif
+		  server.qm=cnst;
+	  }
+	    break;
+
 	  case SCHEME:
 	    SCAN_STRING(p,strbuf,len);
 	    STRNCP(server.scheme, strbuf,len, "scheme");

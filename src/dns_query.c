@@ -89,7 +89,7 @@ typedef struct {
 	short               state;
 	short               qm;
 	char                nocache;
-        char                auth_serv;
+    char                auth_serv;
 	char                lean_query;
 	char                edns_query;
 	char                needs_testing;
@@ -1965,7 +1965,7 @@ inline static void init_qserv(query_stat_array *q)
  * Note: only a reference to nsdomain is copied, not the name itself.
  * Be sure to free the q-list before freeing the name.
  */
-static int add_qserv(query_stat_array *q, pdnsd_a2 *a, int port, time_t timeout, unsigned flags,
+static int add_qserv(query_stat_array *q, pdnsd_a2 *a, int port, int qm, time_t timeout, unsigned flags,
 		     char nocache, char lean_query, char edns_query, char auth_s, char needs_testing, char trusted,
 		     const unsigned char *nsdomain, rejectlist_t *rejectlist)
 {
@@ -2014,7 +2014,7 @@ static int add_qserv(query_stat_array *q, pdnsd_a2 *a, int port, time_t timeout,
 	qs->rejectlist=rejectlist;
 
 	qs->state=QS_INITIAL;
-	qs->qm=global.query_method;
+	qs->qm=qm;
 	qs->s_errno=0;
 	return 1;
 }
@@ -2066,7 +2066,7 @@ static int auth_ok(query_stat_array q, const unsigned char *name, int thint, dns
 static int p_dns_cached_resolve(query_stat_array q, const unsigned char *name, int thint, dns_cent_t **cachedp,
 				int hops, qstatnode_t *qslist, qhintnode_t *qhlist, time_t queryts,
 				unsigned char *c_soa);
-static int simple_dns_cached_resolve(atup_array atup_a, int port, char edns_query, time_t timeout,
+static int simple_dns_cached_resolve(atup_array atup_a, int port, int qm, char edns_query, time_t timeout,
 				     const unsigned char *name, int thint, dns_cent_t **cachedp);
 
 
@@ -2861,9 +2861,9 @@ static int auth_ok(query_stat_array q, const unsigned char *name, int thint, dns
 
 				/* lean query mode is inherited. CF_AUTH and CF_ADDITIONAL are not (as specified
 				 * in CFF_NOINHERIT). */
-				if (!add_qserv(serv, pserva, 53, qse->timeout, qse->flags&~CFF_NOINHERIT, 0,
+				if (!add_qserv(serv, pserva, 53, qse->qm, qse->timeout, qse->flags&~CFF_NOINHERIT, 0,
 					       qse->lean_query,qse->edns_query,2,0,!global.paranoid,nsdomain,
-					       inherit_rejectlist(qse)?qse->rejectlist:NULL))
+					       inherit_rejectlist(qse)?qse->rejectlist:NULL), qse->qm)
 				{
 					return -1;
 				}
@@ -3091,8 +3091,9 @@ addr2_array dns_rootserver_resolv(atup_array atup_a, int port, char edns_query, 
 	dns_cent_t *cent;
 	static const unsigned char rdomain[1]={0};  /* root-domain name. */
 	int rc;
+    int qm = global.query_method;
 
-	rc=simple_dns_cached_resolve(atup_a,port,edns_query,timeout,rdomain,T_NS,&cent);
+	rc=simple_dns_cached_resolve(atup_a,port,qm,edns_query,timeout,rdomain,T_NS,&cent);
 	if(rc==RC_OK) {
 		rr_set_t *rrset=getrrset_NS(cent);
 		if(rrset) {
@@ -3103,7 +3104,7 @@ addr2_array dns_rootserver_resolv(atup_array atup_a, int port, char edns_query, 
 				int nserva=0;
 				pdnsd_a2 serva[MAXNAMESERVIPS];
 
-				rc=simple_dns_cached_resolve(atup_a,port,edns_query,timeout,
+				rc=simple_dns_cached_resolve(atup_a,port,qm,edns_query,timeout,
 							     (const unsigned char *)(rr->data),T_A,&servent);
 				if(rc==RC_OK) {
 #ifdef ENABLE_IPV4
@@ -3256,7 +3257,7 @@ static int p_dns_resolve(const unsigned char *name, int thint, dns_cent_t **cach
 										rejectlist=rjl;
 									}
 									do {
-										one_up=add_qserv(&serv, &DA_INDEX(adrs,k), 53, sp->timeout,
+										one_up=add_qserv(&serv, &DA_INDEX(adrs,k), 53, sp->qm, sp->timeout,
 												 mk_flag_val(sp)&~CFF_NOINHERIT, sp->nocache,
 												 sp->lean_query, sp->edns_query, 2, 0,
 												 !global.paranoid, topdomain, rjl);
@@ -3281,7 +3282,7 @@ static int p_dns_resolve(const unsigned char *name, int thint, dns_cent_t **cach
 							if(!rjl) {one_up=0; goto done;}
 							rejectlist=rjl;
 						}
-						one_up=add_qserv(&serv, &at->a, sp->port, sp->timeout,
+						one_up=add_qserv(&serv, &at->a, sp->port, sp->qm, sp->timeout,
 								 mk_flag_val(sp), sp->nocache, sp->lean_query, sp->edns_query,
 								 sp->rootserver?3:(!sp->is_proxy),
 								 needs_testing(sp), 1, NULL, rjl);
@@ -3587,7 +3588,7 @@ int r_dns_cached_resolve(unsigned char *name, int thint, dns_cent_t **cachedp,
 }
 
 
-static int simple_dns_cached_resolve(atup_array atup_a, int port, char edns_query, time_t timeout,
+static int simple_dns_cached_resolve(atup_array atup_a, int port, int qm, char edns_query, time_t timeout,
 				     const unsigned char *name, int thint, dns_cent_t **cachedp)
 {
 	dns_cent_t *cached=NULL;
@@ -3615,7 +3616,7 @@ static int simple_dns_cached_resolve(atup_array atup_a, int port, char edns_quer
 		qserv=NULL;
 		m=DA_NEL(atup_a);
 		for(j=0; j<m; ++j) {
-			if(!add_qserv(&qserv, &DA_INDEX(atup_a,j).a, port, timeout, 0, 0, 1, edns_query, 0, 0, 1, NULL, NULL)) {
+			if(!add_qserv(&qserv, &DA_INDEX(atup_a,j).a, port, qm, timeout, 0, 0, 1, edns_query, 0, 0, 1, NULL, NULL)) {
 				/* Note: qserv array already cleaned up by add_qserv() */
 				return RC_SERVFAIL;
 			}
