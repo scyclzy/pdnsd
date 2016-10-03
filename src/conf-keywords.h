@@ -31,6 +31,7 @@ enum {
 	INCLUDE_F,
 
 	PERM_CACHE,
+    PROTECT,
 	CACHE_DIR,
 	SERVER_PORT,
 	SERVER_IP,
@@ -147,6 +148,7 @@ static const namevalue_t global_options[]= {
 	{"pid_file",          PID_FILE},
 	{"proc_limit",        C_PROC_LIMIT},
 	{"procq_limit",       C_PROCQ_LIMIT},
+	{"protect",           PROTECT},
 	{"query_method",      C_QUERY_METHOD},
 	{"query_port_end",    QUERY_PORT_END},
 	{"query_port_start",  QUERY_PORT_START},

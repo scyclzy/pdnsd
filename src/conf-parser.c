@@ -588,6 +588,11 @@ int confparse(FILE* in, char *prestr, globparm_t *global, servparm_array *server
 	    }
 	    break;
 
+	  case PROTECT:
+	    SCAN_STRING(p,strbuf,len);
+	    STRNDUP(global->protect,strbuf,len);
+	    break;
+
 	  case CACHE_DIR:
 	    SCAN_STRING(p,strbuf,len);
 	    STRNDUP(global->cache_dir,strbuf,len);

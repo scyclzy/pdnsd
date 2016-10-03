@@ -51,6 +51,11 @@ protect_socket(int fd)
     int sock;
     struct sockaddr_un addr;
 
+    if (global.protect == NULL)
+    {
+        return 0;
+    }
+
     if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         LOGE("[android] socket() failed: %s (socket fd = %d)\n", strerror(errno), sock);
         return -1;
@@ -64,7 +69,7 @@ protect_socket(int fd)
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
     char path[257];
-    sprintf(path, "%s/protect_path", global.cache_dir);
+    sprintf(path, "%s", global.protect);
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;

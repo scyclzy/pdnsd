@@ -40,6 +40,7 @@
 globparm_t global={
   perm_cache:        2048,
   cache_dir:         NULL,
+  protect:           NULL,
   pidfile:           NULL,
   port:              53,
   a:                 PDNSD_A_INITIALIZER,
@@ -182,6 +183,7 @@ int reload_config_file(const char *nm, char **errstr)
 
 	global_new=global;
 	global_new.cache_dir=NULL;
+	global_new.protect=NULL;
 	global_new.pidfile=NULL;
 	global_new.scheme_file=NULL;
 	global_new.deleg_only_zones=NULL;
@@ -279,6 +281,7 @@ int reload_config_file(const char *nm, char **errstr)
 			goto cleanup_return;
 		}
 		free(global_new.cache_dir); global_new.cache_dir=global.cache_dir;
+		free(global_new.protect); global_new.protect=global.protect;
 		free(global_new.pidfile); global_new.pidfile=global.pidfile;
 		free(global_new.scheme_file); global_new.scheme_file=global.scheme_file;
 		free_zones(global.deleg_only_zones);
@@ -295,6 +298,7 @@ int reload_config_file(const char *nm, char **errstr)
 
  cleanup_return:
 	free(global_new.cache_dir);
+	free(global_new.protect);
 	free(global_new.pidfile);
 	free(global_new.scheme_file);
 	free_zones(global_new.deleg_only_zones);

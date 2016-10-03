@@ -120,6 +120,7 @@ typedef DYNAMIC_ARRAY(zone_t) *zone_array;
 
 typedef struct {
 	long          perm_cache;
+    char         *protect;
 	char         *cache_dir;
 	char         *pidfile;
 	int           port;
